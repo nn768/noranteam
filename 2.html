@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="ar">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>لعبة التعرف على المواقع المشبوهة - noran-team-cyberssecurity</title>
+
+<style>
+  body {
+    font-family: 'Tajawal', system-ui, sans-serif;
+    direction: rtl;
+    padding: 20px;
+    background: #0A0F1F;
+    background-image: radial-gradient(circle at 20% 20%, rgba(0,150,255,0.06), transparent 60%),
+                      radial-gradient(circle at 80% 70%, rgba(0,150,255,0.05), transparent 60%);
+    color: #e7f4ff;
+  }
+
+  .card {
+    border: 1px solid rgba(0,150,255,0.25);
+    padding: 25px;
+    border-radius: 14px;
+    max-width: 950px;
+    margin: 0 auto;
+    background: rgba(15,25,45,0.75);
+    backdrop-filter: blur(6px);
+    box-shadow: 0 0 20px rgba(0,150,255,0.20);
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 2rem;
+    color: #00C3FF;
+    text-shadow: 0 0 8px #009dff;
+    position: relative;
+  }
+
+  h1::before {
+    content: "🤖";
+    margin-left: 8px;
+    font-size: 1.7rem;
+  }
+
+  .score {
+    text-align:center;
+    margin-bottom:12px;
+    font-weight:bold;
+    color:#9cdcff;
+  }
+
+  .url {
+    font-family: monospace;
+    background: rgba(0, 80, 140, 0.25);
+    padding: 10px;
+    border-radius: 8px;
+    display: block;
+    margin-bottom: 12px;
+    border: 1px solid rgba(0,150,255,0.3);
+    color: #d8efff;
+    box-shadow: inset 0 0 8px rgba(0,150,255,0.1);
+  }
+
+  .preview {
+    margin: 12px 0;
+    color:#bde3ff;
+    font-size: 1.05em;
+  }
+
+  .buttons button {
+    margin: 6px 6px 6px 0;
+    padding: 12px 18px;
+    background: linear-gradient(135deg, #003b70, #0077c8);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor:pointer;
+    font-size: 1.05em;
+    box-shadow: 0 0 10px rgba(0,150,255,0.35);
+    transition: 0.25s;
+  }
+
+  .buttons button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 15px rgba(0,180,255,0.55);
+    background: linear-gradient(135deg, #005c9e, #00aaff);
+  }
+
+  #hintBtn, #nextBtn {
+    padding: 10px 18px;
+    background: #0F4C75;
+    color: #e7f4ff;
+    border: 1px solid rgba(0,150,255,0.4);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: .3s;
+  }
+
+  #hintBtn:hover, #nextBtn:hover {
+    background: #136AA7;
+    box-shadow: 0 0 12px rgba(0,150,255,0.45);
+  }
+
+  .hint {
+    font-size: 0.95em;
+    background: rgba(0,150,255,0.08);
+    padding: 10px;
+    border-radius: 8px;
+    border-right: 3px solid #00C3FF;
+    margin-top: 10px;
+    color: #aee4ff;
+  }
+
+  .feedback {
+    margin-top:12px;
+    padding:14px;
+    border-radius:8px;
+    font-size:1.05em;
+  }
+
+  .correct {
+    background: rgba(0,255,150,0.10);
+    border:1px solid rgba(0,255,150,0.25);
+  }
+
+  .wrong {
+    background: rgba(255,80,80,0.12);
+    border:1px solid rgba(255,80,80,0.28);
+  }
+
+  footer {
+    text-align:center;
+    margin-top:14px;
+    color:#6fa2c9;
+    font-size:0.9em;
+  }
+</style>
+</head>
+
+<body>
+
+<div class="card">
+  <h1>لعبة: هل هذا الموقع مشبوه؟</h1>
+
+  <div class="score">النتيجة: <span id="score">0</span> — سؤال <span id="index">1</span> / 7</div>
+
+  <div id="scenario"></div>
+
+  <div style="text-align:center; margin-top:12px;">
+    <button id="hintBtn">إظهار تلميح (-5 نقاط)</button>
+    <button id="nextBtn" style="display:none;">السؤال التالي</button>
+  </div>
+
+  <footer>noran-team-cyberssecurity — تدريب توعوي.</footer>
+</div>
+
+<script>
+const scenarios = [
+  {"id":1,"title":"محاولة انتحال باي بال","url":"https://paypa1-secure.com/login","preview":"صفحة تسجيل مشابهة لـ PayPal.","why_suspicious":"الدومين يبدّل حرفًا (l → 1).","hint":"راجع الدومين حرفًا حرفًا.","answer":"مشبوه","explanation":"HTTPS لا يعني أن الموقع رسمي."},
+  {"id":2,"title":"رابط مختصر بنك","url":"https://bit.ly/3AbcXYZ","preview":"يطلب بيانات حساسة.","why_suspicious":"رابط مختصر + طلب بيانات مالية.","hint":"لا تدخل بيانات عبر روابط مختصرة.","answer":"مشبوه","explanation":"الروابط المختصرة قد تخفي مواقع تصيّد."},
+  {"id":3,"title":"موقع حكومي مقلّد","url":"http://moci-govsa.com/visa-status","preview":"يطلب جواز ورسوم.","why_suspicious":"لا ينتهي بـ gov.sa.","hint":"المواقع الحكومية تنتهي بـ gov.sa.","answer":"مشبوه","explanation":"تحقق دائمًا من امتداد الدومين."},
+  {"id":4,"title":"دعم مزيف لمايكروسوفت","url":"https://support-microsoft.online/reset","preview":"واجهة مقنعة.","why_suspicious":"الدومين ليس microsoft.com.","hint":"لا تعتمد على شكل الموقع.","answer":"مشبوه","explanation":"المحتالون يقلّدون الواجهات."},
+  {"id":5,"title":"تحميل exe مشبوه","url":"https://free-soft-downloads.net/installer.exe","preview":"مراجعات مزيفة.","why_suspicious":"ملف تنفيذي من موقع مجهول.","hint":"نزّل من الموقع الرسمي فقط.","answer":"مشبوه","explanation":"الملفات التنفيذية خطيرة من مصادر غير معروفة."},
+  {"id":6,"title":"تنبيه فيسبوك مزيف","url":"https://facebook.com.page-notice-alerts.xyz/verify","preview":"يهدد بإغلاق الحساب.","why_suspicious":"دومين غريب.","hint":"فيسبوك = facebook.com فقط.","answer":"مشبوه","explanation":"التخويف إحدى طرق التصيد."},
+  {"id":7,"title":"وظيفة برسوم","url":"https://jobs-saudi-career.org/apply","preview":"يطالب برسوم.","why_suspicious":"التوظيف لا يطلب مبالغ.","hint":"لا تدفع للتقدم للوظائف.","answer":"مشبوه","explanation":"الرسوم دائمًا علامة تصيد."}
+];
+
+let idx = 0;
+let score = 0;
+const total = scenarios.length;
+
+function render() {
+  const s = scenarios[idx];
+  document.getElementById('index').textContent = idx+1;
+  document.getElementById('scenario').innerHTML = `
+    <div>
+      <div class="url">URL: <strong>${s.url}</strong></div>
+      <div class="preview">${s.preview}</div>
+
+      <div>اختر:</div>
+      <div class="buttons">
+        <button onclick="answer('آمن')">آمن</button>
+        <button onclick="answer('مشبوه')">مشبوه</button>
+        <button onclick="answer('غير متأكد')">غير متأكد</button>
+      </div>
+
+      <div id="hint" class="hint" style="display:none;">
+        <strong>تلميح:</strong> ${s.hint}
+      </div>
+
+      <div id="feedback"></div>
+    </div>
+  `;
+  document.getElementById('nextBtn').style.display = 'none';
+}
+
+function answer(choice) {
+  const s = scenarios[idx];
+  const fb = document.getElementById('feedback');
+  fb.innerHTML = '';
+
+  let correct = (choice === s.answer);
+
+  if (choice === 'غير متأكد') {
+    score -= 2;
+    fb.innerHTML = `<div class="feedback wrong"><strong>غير متأكد</strong><div>${s.explanation}</div></div>`;
+  } else if (correct) {
+    score += 10;
+    fb.innerHTML = `<div class="feedback correct"><strong>صحيح!</strong><div>${s.explanation}</div></div>`;
+  } else {
+    score -= 5;
+    fb.innerHTML = `<div class="feedback wrong"><strong>خطأ.</strong><div>${s.why_suspicious}</div></div>`;
+  }
+
+  document.getElementById('score').textContent = score;
+  document.getElementById('nextBtn').style.display = 'inline-block';
+}
+
+document.getElementById('hintBtn').addEventListener('click', ()=>{
+  const h = document.getElementById('hint');
+  if (h.style.display === 'none') {
+    h.style.display = 'block';
+    score -= 5;
+    document.getElementById('score').textContent = score;
+  } else {
+    h.style.display = 'none';
+  }
+});
+
+document.getElementById('nextBtn').addEventListener('click', ()=>{
+  idx++;
+  if (idx >= total) {
+    document.getElementById('scenario').innerHTML =
+      `<div style="text-align:center; padding:20px;">
+        <h2>انتهت الأسئلة!</h2>
+        <p>النتيجة النهائية: <strong>${score}</strong></p>
+        <button onclick="restart()">إعادة المحاولة</button>
+      </div>`;
+    document.getElementById('nextBtn').style.display = 'none';
+    document.getElementById('hintBtn').style.display = 'none';
+  } else {
+    render();
+  }
+});
+
+function restart() {
+  idx = 0;
+  score = 0;
+  document.getElementById('hintBtn').style.display = 'inline-block';
+  document.getElementById('score').textContent = score;
+  render();
+}
+
+render();
+</script>
+
+</body>
+</html>
